@@ -5,6 +5,8 @@
 // Learn life-cycle callbacks:
 //  - https://docs.cocos.com/creator/2.4/manual/en/scripting/life-cycle-callbacks.html
 
+import Scren from "./NewScript";
+
 const {
     ccclass,
     property
@@ -27,6 +29,27 @@ export default class Main extends cc.Component {
     contentSong: cc.Node = null;
     @property(cc.Node)
     contentDoThi: cc.Node = null;
+
+
+    @property(cc.Toggle)
+    graph: cc.Toggle = null;
+    @property(cc.Toggle)
+    play_tone: cc.Toggle = null;
+    @property(cc.Toggle)
+    waves: cc.Toggle = null;
+    @property(cc.Toggle)
+    particles: cc.Toggle = null;
+    @property(cc.Toggle)
+    both: cc.Toggle = null;
+
+
+    @property(cc.Sprite)
+    loa: cc.Sprite = null;
+    @property([cc.SpriteFrame])
+    spr_loa: cc.SpriteFrame[] = [];
+
+    @property(Scren)
+    scren: Scren = null;
     private static _instance: any;
     static listVong: any;
     speed: number = 1;
@@ -38,7 +61,10 @@ export default class Main extends cc.Component {
     public static set instance(value: any) {
         Main._instance = value;
     }
-
+    protected start(): void {
+        this.scheduleOnce(this.showthuoc, 0.5)
+        this.scheduleOnce(this.showDongHo, 0.5)
+    }
     onEnable() {
         this.cham.active = false;
         this.tron.active = false;
@@ -59,12 +85,17 @@ export default class Main extends cc.Component {
         // this.showDoThi()
         // this.showDoThiByFrequency()
         // this.showthuoc()
+        this.graph.isChecked = false;
+        this.play_tone.isChecked = false;
+        this.waves.isChecked = false;
+        this.particles.isChecked = false;
+        this.both.isChecked = false;
         this.scheduleOnce(this.showSong, 0.2)
         this.scheduleOnce(this.showHat, 0.3)
         this.scheduleOnce(this.showDoThi, 0.4)
-        this.scheduleOnce(this.showthuoc, 0.5)
         this.scheduleOnce(this.run, 0.5)
         // cc.NativeCallJS(11)
+        this.sound();
     }
 
     changeSpeed(evt, data) {
@@ -83,20 +114,19 @@ export default class Main extends cc.Component {
 
 
     showSong() {
-        this.vong.scale = 0.1;
         this.vong.scale = 1;
         let delta = 8;
         let trai = -Math.ceil(this.contentDoThi.width / delta * this.contentDoThi.anchorX);
-        let phai = Math.ceil(this.contentDoThi.width / delta * (1 - this.contentDoThi.anchorX));
+        let phai = Math.ceil(this.contentDoThi.width / delta * (1 - this.contentDoThi.anchorX)) + 2;
         let length = (phai - trai) * 1.07;
 
         for (let ngang = length; ngang > 0; ngang--) {
             let vong = cc.instantiate(this.vong);
             vong.active = true;
-            vong.color = new cc.Color(255 * ngang / length, 255 * ngang / length, 255 * ngang / length, 255)
+            vong.color = new cc.Color(255 * ngang / length, 255 * ngang / length, 255 * ngang / length)
             Main.listVong = [{
                 target: vong,
-                color: new cc.Color(127, 127, 127, 255),
+                color: new cc.Color(127, 127, 127),
                 delta: ngang * delta,
                 time: 0
             }].concat(Main.listVong)
@@ -139,18 +169,6 @@ export default class Main extends cc.Component {
                 cham.position = cc.v3(x, 0)// doc * delta + this.goc.y);
             }
         }
-        this.schedule(() => {
-            this.listCham.forEach(cham => {
-                let time = 0.2 + 0.2 * Math.random();
-                let x = cham.position_song.x + Math.random() * 15;
-                let y = cham.position_song.y + Math.random() * 15;
-                cc.tween(cham.target)
-                    .to(time, {
-                        position: cc.v3(x, y)
-                    })
-                    .start()
-            })
-        }, 0.2)
     }
 
 
@@ -183,6 +201,7 @@ export default class Main extends cc.Component {
     }
 
     exit() {
+        this.scren.show()
         this.unscheduleAllCallbacks()
         this.cham.active = false;
         this.tron.active = false;
@@ -197,40 +216,101 @@ export default class Main extends cc.Component {
         this.contentHat.removeAllChildren()
         this.contentSong.removeAllChildren()
         this.contentDoThi.removeAllChildren()
-        this.dau_thuoc.off(cc.Node.EventType.TOUCH_START);
-        this.dau_thuoc.off(cc.Node.EventType.TOUCH_MOVE);
-        this.dau_thuoc.off(cc.Node.EventType.TOUCH_END);
-        this.dau_thuoc.off(cc.Node.EventType.TOUCH_CANCEL);
-        this.duoi_thuoc.off(cc.Node.EventType.TOUCH_START);
-        this.duoi_thuoc.off(cc.Node.EventType.TOUCH_MOVE);
-        this.duoi_thuoc.off(cc.Node.EventType.TOUCH_END);
-        this.duoi_thuoc.off(cc.Node.EventType.TOUCH_CANCEL);
+
         this.node.removeFromParent()
     }
+
+    hatMove() {
+        if (this.particles.isChecked || this.both.isChecked)
+            this.listCham.forEach(cham => {
+                let time = 0.1 + 0.3 * Math.random();
+                let x = cham.position_song.x + Math.random() * 15;
+                let y = cham.position_song.y + Math.random() * 15;
+                cc.tween(cham.target)
+                    .to(time * this.speed, {
+                        position: cc.v3(x, y)
+                    })
+                    .start()
+            })
+    }
+
     action() {
         let delta = 2 * Math.PI * (1 / 60 * (1 + this.fre.progress))
         let ACham = 20 * this.amp.progress
-
-        this.listCham.forEach((diem, ind) => {
-            diem.time -= 0.2;
-            diem.position_song = cc.v2(diem.delta + ACham * Math.cos(delta * diem.delta / 2 + diem.time), 0)
-        })
+        this.contentHat.opacity = (this.particles.isChecked || this.both.isChecked) ? 255 : 0;
+        if (this.particles.isChecked || this.both.isChecked)
+            this.listCham.forEach((diem, ind) => {
+                diem.time -= 0.2;
+                diem.position_song = cc.v2(diem.delta + ACham * Math.cos(delta * diem.delta / 2 + diem.time), 0)
+            })
         let AVong = this.amp.progress * 127
-        Main.listVong.forEach((diem, ind) => {
-            diem.time -= 0.2;
-            let color = -128 + AVong * Math.cos(delta * diem.delta / 2 + diem.time)
-            diem.target.color = new cc.Color(color, color, color, 255);
-        })
+        this.contentSong.opacity = (this.waves.isChecked || this.both.isChecked) ? 255 : 0;
+        // if (-128 + AVong * Math.cos(delta * Main.listVong[0].delta / 2 + Main.listVong[0].time) < -128)
+        //     cc.log((-128 + AVong * Math.cos(delta * Main.listVong[0].delta / 2 + Main.listVong[0].time)).toFixed(1), new Date().getTime())
+        if (this.waves.isChecked || this.both.isChecked)
+            Main.listVong.forEach((diem, ind) => {
+                diem.time -= 0.2;
+                let color = -128 + AVong * Math.cos(delta * diem.delta / 2 + diem.time)
+                diem.target.color = new cc.Color(color, color, color);
+            })
         let ADiem = this.amp.progress * 30
-        Main.listDiem.forEach((diem, ind) => {
-            diem.time += -0.2// ind > 15 ? -0.2 : +0.2;
-            diem.target.position = cc.v3(diem.position.x, ADiem * Math.cos(delta * diem.delta / 2 + diem.time));// (ind > 15 ? -diem.time : -diem.time - Math.PI * 1.8)));
-        })
+        this.contentDoThi.parent.opacity = (this.graph.isChecked) ? 255 : 0;
+        if (this.graph.isChecked)
+            Main.listDiem.forEach((diem, ind) => {
+                diem.time += -0.2// ind > 15 ? -0.2 : +0.2;
+                diem.target.position = cc.v3(diem.position.x, ADiem * Math.cos(delta * diem.delta / 2 + diem.time));// (ind > 15 ? -diem.time : -diem.time - Math.PI * 1.8)));
+            })
     }
+    is_spr_loa = 0;
+    actionLoa() {
+        this.is_spr_loa = this.is_spr_loa == 2 ? 1 : 2;
+        if (this.amp.progress < 0.01) this.is_spr_loa = 0;
+        this.loa.spriteFrame = this.spr_loa[this.is_spr_loa];
+        // cc.error("///////////////////", (1 / (1 + this.fre.progress)) / this.speed)
+    }
+    test() {
+        // this.scheduleOnce()
+        // cc.tween(this.node).repeat("".length, cc.sequence(cc.callFunc(() => {
+
+        // }), cc.delayTime(0.2)))
+    }
+
+    actionPause(target: cc.Toggle) {
+        cc.log(target)
+        if (target.isChecked) {
+            this.unschedule(this.actionLoa)
+            this.unschedule(this.action)
+            this.unschedule(this.hatMove)
+        }
+        else {
+            this.loa.spriteFrame = this.spr_loa[0];
+            this.schedule(this.actionLoa, 1300 / 1000 / this.speed / 2 / (1 + this.fre.progress))//1109-
+            this.schedule(this.action, 0.03 / this.speed)
+            this.schedule(this.hatMove, 0.2 / this.speed)
+        }
+
+    }
+
     run() {
+        this.unschedule(this.actionLoa)
+        this.loa.spriteFrame = this.spr_loa[0];
+        this.schedule(this.actionLoa, 1300 / 1000 / this.speed / 2 / (1 + this.fre.progress))//1109-
         this.unschedule(this.action)
         this.schedule(this.action, 0.03 / this.speed)
+        this.unschedule(this.hatMove)
+        this.schedule(this.hatMove, 0.2 / this.speed)
+
+        // this.unschedule(this.sound)
+        // this.schedule(this.sound, (2 + this.fre.progress * 0.8));
     }
+
+    sound() {
+        // cc.log(new Date())
+        // if (cc.sys.os === cc.sys.OS_ANDROID && cc.sys.isNative) {
+        //     jsb.reflection.callStaticMethod("org/cocos2dx/javascript/AppActivity", "phat", "(I)V", parseInt(frequency) || 0);
+        // }
+    }
+
     // frequency = 1 / 60;
     // showDoThiByFrequency() {
     //     this.contentDoThi.active = true;
@@ -251,16 +331,63 @@ export default class Main extends cc.Component {
     //     }
     // }
 
-    static maxHeight = 0;
-    static updateFrequency(frequency = 0) {
-        cc.log(frequency)
-        Main.maxHeight = Math.max(Main.maxHeight, frequency)
-        for (let index = Main.listDiem.length - 1; index >= 1; index--) {
-            Main.listDiem[index].height = Main.listDiem[index - 1].height;
-            Main.listDiem[index].target.height = Main.listDiem[index].height / Main.maxHeight * 85;
+
+
+    @property(cc.Node)
+    dong_ho: cc.Node = null;
+
+    @property(cc.Button)
+    reset_dong_ho: cc.Button = null;
+    @property(cc.Label)
+    time_dong_ho: cc.Label = null;
+    @property(cc.Button)
+    play_dong_ho: cc.Button = null;
+
+    showDongHo() {
+        this.dong_ho.active = true;
+        let touch_start_dau_thuoc = (event: cc.Event.EventTouch) => { };
+        let touch_move_dau_thuoc = (event: cc.Event.EventTouch) => {
+            var pos = this.dong_ho.parent.position;
+            pos.x += event.getDeltaX();
+            pos.y += event.getDeltaY();
+            this.dong_ho.parent.position = pos;
+        };
+        let touch_end_dau_thuoc = (event: cc.Event.EventTouch) => { };
+        this.dong_ho.on(cc.Node.EventType.TOUCH_START, touch_start_dau_thuoc, this);
+        this.dong_ho.on(cc.Node.EventType.TOUCH_MOVE, touch_move_dau_thuoc, this);
+        this.dong_ho.on(cc.Node.EventType.TOUCH_END, touch_end_dau_thuoc, this);
+        this.dong_ho.on(cc.Node.EventType.TOUCH_CANCEL, touch_end_dau_thuoc, this);
+        this.time_dong_ho.string = "";
+    }
+    time() {
+        this.time_dong_ho.string = (parseFloat(this.time_dong_ho.string) + 0.1).toFixed(1) + " ms"
+    }
+    isRunTime: boolean = false;
+    playDongHo() {
+        this.unschedule(this.time)
+        this.isRunTime = !this.isRunTime;
+        this.reset_dong_ho.interactable = !this.isRunTime;
+        if (this.isRunTime) {
+            this.time_dong_ho.string = "0 ms";
+            this.schedule(this.time, 0.1 / this.speed);
         }
-        Main.listDiem[0].height = frequency;
-        Main.listDiem[0].target.height = frequency / Main.maxHeight * 85;
+        else {
+
+        }
+    }
+
+    resetDongHo() {
+        this.time_dong_ho.string = "0 ms";
+    }
+
+    reset() {
+        this.fre.progress = 0;
+        this.amp.progress = 0;
+        this.graph.isChecked = false;
+        this.play_tone.isChecked = false;
+        this.waves.isChecked = false;
+        this.particles.isChecked = false;
+        this.both.isChecked = false;
     }
 
 
@@ -315,6 +442,4 @@ export default class Main extends cc.Component {
 }
 module.exports = Main;
 
-cc.NativeCallJS = function (params) {
-    Main.updateFrequency(parseFloat(params))
-};
+
