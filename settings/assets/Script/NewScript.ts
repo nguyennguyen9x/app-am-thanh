@@ -185,12 +185,9 @@ export default class Scren extends cc.Component {
             // diem.position = cc.v3(ngang * delta, 0);
         }
         Scren._line = this.line;
-        Scren._truc = this.truc;
-        Scren._hieu_chinh = this.hieu_chinh;
-        Scren._diem = this.truc.children[0];
         Scren._labelDB = this.labelDB;
         Scren._labelAMP = this.labelAMP;
-        // Scren._line.node.getParent().runAction(cc.scaleTo(0.2, 0.5));
+        Scren._line.node.getParent().runAction(cc.scaleTo(0.2, 0.5));
         this.line.clear();
         this.line.moveTo(Scren.listDiem[0].delta, Scren.listDiem[0].y);
         Scren.listDiem.forEach(diem => {
@@ -251,20 +248,18 @@ export default class Scren extends cc.Component {
     line2: cc.Graphics = null;
 
     updateLine() {
-        // if (!newData) return;
-        // Scren._line2.clear();
-        // Scren._line2.moveTo(0, 0);
-        // cc.log("updateLine ", newData)
-        // for (let i = 0; i < 150; i++) {
-        //     Scren._line2.lineJoin = cc.Graphics.LineJoin.ROUND;
-        //     Scren._line2.lineTo(i, (newData.amplitude.toFixed(1) / 2) * Math.sin(2 * Math.PI * 10 / newData.frequency * i));
-        // }
-        // Scren._line2.stroke();
+        if (!newData) return;
+        Scren._line2.clear();
+        Scren._line2.moveTo(0, 0);
+        cc.log("updateLine ", newData)
+        for (let i = 0; i < 150; i++) {
+            Scren._line2.lineJoin = cc.Graphics.LineJoin.ROUND;
+            Scren._line2.lineTo(i, (newData.amplitude.toFixed(1) / 2) * Math.sin(2 * Math.PI * 10 / newData.frequency * i));
+        }
+        Scren._line2.stroke();
     }
 
     static checkDecibel(data) {
-        // setTimeout(() => {
-
         // Scren.dataInput.push(data);
         // // cc.lo
         // if (Scren.dataInput.length > 100)
@@ -302,66 +297,45 @@ export default class Scren extends cc.Component {
                 newData = "Nốt nhạc : Đô - C5 \nFrequency : " + data.frequency.toFixed(2) + " Hz\n(chênh " + (Scren.max_frequency - 523.26).toFixed(2) + " Hz)\nnốt chuẩn : 523.26 Hz";
             // })
         }
-        Scren._labelDB.string = "Decibel : " + (data.decibel + Scren.tang).toFixed(2) + " dB\nFrequency : " + data.frequency.toFixed(2) + " Hz\nAmplitude : " + data.amplitude.toFixed(2) + "\n\n\n\n" + newData;
+        Scren._labelDB.string = "Decibel : " + -data.decibel.toFixed(2) + " dB\nFrequency : " + data.frequency.toFixed(2) + " Hz\nAmplitude : " + data.amplitude.toFixed(2) + "\n\n\n\n" + newData;
+
         return;
-        // }, 100);
 
     }
-    clear() {
-        Scren._line.clear();
-        Scren.listData = [];
-        Scren._max_decibel = -1000;
-        Scren._min_decibel = 0;
-    }
 
-    hieuChinh() {
-        Scren._hieu_chinh = this.hieu_chinh;
-        let hieu_chinh = !isNaN(parseFloat(Scren._hieu_chinh.string)) ? parseFloat(Scren._hieu_chinh.string) : (Scren.listData.length > 0 ? Scren.listData.slice().pop().decibel : 0);
-        Scren.tang = hieu_chinh - (Scren.listData.length > 0 ? Scren.listData.slice().pop().decibel : 0);
-        Scren._hieu_chinh.node.getChildByName("label").getComponent(cc.Label).string = "Hiệu chỉnh bù : " + Scren.tang.toFixed(2) + " dB";
-        // Scren.listData.forEach((diem, ind) => {
-        //     diem.decibel += Scren.tang;
-        // });
-    }
-    static listData: any[] = [];
-    static delta = .8;
-
-    @property(cc.EditBox)
-    hieu_chinh: cc.EditBox = null;
-    static _hieu_chinh: cc.EditBox = null;
-    @property(cc.Node)
-    truc: cc.Node = null;
-    static _truc: cc.Node = null;
-    static _diem: cc.Node = null;
-    static _max_decibel = -1000;
-    static _min_decibel = 0;
-    static tang = 0;
     static updateFrequency(data) {
+        if (!Scren.isGhi) return
         data = JSON.parse(data)
         if (cc.sys.isBrowser) {
             data = {
                 frequency: Math.random() * cc.winSize.height * Scren.max_height,
-                decibel: Math.random() * 20 - 31.5,
+                decibel: -31.5,
                 amplitude: 200 + Math.random() * 110,
             }
         }
         Scren.checkDecibel(data);
-        Scren.listData.push(data);
-        let listDiem = Scren.listData
-        let width = (cc.winSize.width - 280) / listDiem.length * Scren.delta;
-        Scren._max_decibel = Math.max(Scren._max_decibel, data.decibel + Scren.tang);
-        Scren._min_decibel = Math.min(Scren._min_decibel, data.decibel);
+        // Scren.max_frequency = Math.max(Scren.max_frequency, data.frequency)
+        // cc.log(data);
+        // data.frequency /= 10;
+        // if (data.frequency > Scren.maxHeight && data.frequency > cc.winSize.height && data.frequency < cc.winSize.height * Scren.max_height) {
+        //     Scren._line.node.getParent().runAction(cc.scaleTo(0.2, 1, cc.winSize.height / data.frequency - 0.05));
+        //     Scren._line.lineWidth = 4
+        // }
+
+        Scren.maxHeight = Math.min(Math.max(data.frequency, Scren.maxHeight), cc.winSize.height * Scren.max_height);
+        Scren.listDiem.unshift(data.frequency);
+        if (Scren.listDiem.length > cc.winSize.width - 280) Scren.listDiem.pop()
+        let list = Scren.listDiem// JSON.parse(JSON.stringify(Scren.listDiem))
         Scren._line.clear();
-        Scren._line.moveTo(0, (listDiem[0].decibel + Scren.tang - Scren._min_decibel) * (cc.winSize.height) / (Scren._max_decibel - Scren._min_decibel) * Scren.delta + 50);
-        listDiem.forEach((diem, ind) => {
+        Scren._line.moveTo(0, list[0]);
+        list.forEach((diem, ind) => {
             Scren._line.lineJoin = cc.Graphics.LineJoin.ROUND;
-            Scren._line.lineTo(ind * width, (diem.decibel + Scren.tang - Scren._min_decibel) * (cc.winSize.height) / (Scren._max_decibel - Scren._min_decibel) * Scren.delta + 50);
+            Scren._line.lineTo(ind * 2, diem);
         })
         Scren._line.stroke();
-        Scren._truc.children.forEach((diem, ind) => {
-            diem.position = cc.v3(0, (cc.winSize.height) / 10 * ind * Scren.delta + 50);
-            diem.getComponentInChildren(cc.Label).string = (Scren._min_decibel + (Scren._max_decibel - Scren._min_decibel) * ind / 10).toFixed(2) + " dB";
-        })
+
+
+
     }
     click() {
         // this.label.string = "" + new Date();

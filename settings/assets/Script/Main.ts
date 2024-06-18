@@ -71,8 +71,8 @@ export default class Main extends cc.Component {
         this.diem.active = false;
         // this.contentDoThi.parent.active = false;
         this.goc = cc.v2(-this.contentHat.x, -this.contentHat.y);
-        this.fre.progress = 0.3;
-        this.amp.progress = 0.5;
+        this.fre.progress = 0;
+        this.amp.progress = 0;
 
         Main.listVong = []
         Main.listDiem = []
@@ -88,11 +88,11 @@ export default class Main extends cc.Component {
         this.play_tone.isChecked = false;
         this.waves.isChecked = false;
         this.particles.isChecked = false;
-        this.both.isChecked = true;
+        this.both.isChecked = false;
         this.scheduleOnce(this.showSong, 0.2)
         this.scheduleOnce(this.showHat, 0.3)
         this.scheduleOnce(this.showDoThi, 0.4)
-        this.scheduleOnce(this.run, 0.3)
+        this.scheduleOnce(this.run, 0.5)
         // cc.NativeCallJS(11)
         this.sound();
     }
@@ -141,7 +141,7 @@ export default class Main extends cc.Component {
     cham: cc.Node = null;
     listCham = [];
     showHat() {
-        let delta = 30;//25;
+        let delta = 25;//25;
         let trai = -Math.floor(this.contentHat.parent.width / delta / 2);
         let phai = Math.ceil(this.contentHat.parent.width / delta / 2);
         let duoi = -Math.floor(this.contentHat.parent.height / delta / 2);
@@ -165,7 +165,7 @@ export default class Main extends cc.Component {
                     time: 0
                 })
                 if (ngang % 4 == 0 && doc % 4 == 0) cham.color = cc.Color.RED
-                // cham.opacity = (ngang % 4 == 0 && doc % 4 == 0) ? 255 : 0
+                cham.opacity = (ngang % 4 == 0 && doc % 4 == 0) ? 255 : 0
                 cham.position = cc.v3(x, 0)// doc * delta + this.goc.y);
             }
         }
@@ -223,12 +223,11 @@ export default class Main extends cc.Component {
     hatMove() {
         // if (this.particles.isChecked || this.both.isChecked)
         this.listCham.forEach(cham => {
-            let time = 0.2 * Math.random();
+            let time = 0.1 + 0.2 * Math.random();
             let x = cham.position_song.x //+ Math.random() * 10;
             let y = cham.position_song.y //+ Math.random() * 10;
             cc.tween(cham.target)
-                // .delay(time * this.speed)
-                .to(0.1 * this.speed, {
+                .to(time * this.speed, {
                     position: cc.v3(x, y)
                 })
                 .start()
@@ -237,13 +236,12 @@ export default class Main extends cc.Component {
 
     action() {
         let delta = 2 * Math.PI * (1 / 60 * (1 + this.fre.progress))
-        let amp = 30 * this.amp.progress + 2
+        let amp = 60 * this.amp.progress + 2
         this.contentHat.opacity = 255// (this.particles.isChecked || this.both.isChecked) ? 255 : 0;
         // if (this.particles.isChecked || this.both.isChecked)
         this.listCham.forEach((diem, ind) => {
             diem.time += 0.2;
-            // diem.position_song = cc.v2(diem.delta + amp * Math.cos(2 * Math.PI * 1 * diem.time + (diem.delta % amp) * Math.PI), 0)
-            diem.position_song = diem.position.add(cc.v3(amp * Math.cos(delta * diem.delta / 2 + diem.time) + 5, 0))
+            diem.position_song = cc.v2(diem.delta + amp * Math.cos(2 * Math.PI * 1 * diem.time + (diem.delta % amp) * Math.PI), 0)
         })
         let AVong = this.amp.progress * 127
         this.contentSong.opacity = (this.waves.isChecked || this.both.isChecked) ? 255 : 0;
@@ -300,7 +298,7 @@ export default class Main extends cc.Component {
         this.unschedule(this.action)
         this.schedule(this.action, 0.02 / this.speed)
         this.unschedule(this.hatMove)
-        this.schedule(this.hatMove, 0.1 / this.speed)
+        this.schedule(this.hatMove, 0.2 / this.speed)
 
         // this.unschedule(this.sound)
         // this.schedule(this.sound, (2 + this.fre.progress * 0.8));
